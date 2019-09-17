@@ -1930,7 +1930,7 @@ Pagoda2 <- setRefClass(
       return(invisible(tam3))
     },
 
-    getEmbedding=function(type='counts', embeddingType='largeVis', name=NULL, dims=2, M=1, gamma=1/M, perplexity=50, sgd_batches=NULL, diffusion.steps=0, diffusion.power=0.5, distance='pearson', n.cores = .self$n.cores, ... ) {
+    getEmbedding=function(type='counts', embeddingType='largeVis', name=NULL, dims=2, M=1, gamma=1/M, perplexity=50, sgd_batches=NULL, diffusion.steps=0, diffusion.power=0.5, distance='pearson', n.cores = .self$n.cores,seed.use=42,n_neighbors=30,min_dist=.3 ,... ) {
       
       if(dims<1) stop("dimensions must be >=1")
       if(type=='counts') {
@@ -2006,6 +2006,21 @@ Pagoda2 <- setRefClass(
         emb <- layout.fruchterman.reingold(g, weights=E(g)$weight)
         rownames(emb) <- colnames(mat); colnames(emb) <- c("D1","D2")
         embeddings[[type]][[name]] <<- emb;
+      } else if(embeddingType=='UMAP') {
+      	if(!type %in% names(reductions)) { stop("reduction ",type,' not found')}
+        x <- reductions[[type]]
+        if (!is.null(x = seed.use)) {
+    		set.seed(seed = seed.use)
+    		py_set_seed(seed = seed.use)
+  		}
+  		umap <- reticulate::umap_import$UMAP(n_neighbors = as.integer(x = n_neighbors), 
+                           n_components = as.integer(x = 2), metric = "correlation", 
+                           min_dist = min_dist)
+  
+  		emb <- umap$fit_transform(as.matrix(x = x))
+  		rownames(emb) <- rownames(x);colnames(emb)=c("UMAP1","UMAP2")
+  		embeddings[[type]][[name]] <<- emb;
+
       } else {
         stop('unknown embeddingType ',embeddingType,' specified');
       }

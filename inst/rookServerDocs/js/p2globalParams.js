@@ -43,7 +43,7 @@ var p2globalParams = {
   },
 
   embedding: {
-    defaultEmbedding: {"reduction": "PCA", "embedding": "tSNE"},
+    defaultEmbedding: {"reduction": "PCA", "embedding": "UMAP"},
     defaultPlotPointSize: 4,
     defaultAlpha: 0.4,
     defaultBorder: true,
