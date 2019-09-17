@@ -2011,7 +2011,7 @@ Pagoda2 <- setRefClass(
         x <- reductions[[type]]
         if (!is.null(x = seed.use)) {
     		set.seed(seed = seed.use)
-    		py_set_seed(seed = seed.use)
+    		reticulate::py_set_seed(seed = seed.use)
   		}
   		umap <- reticulate::umap_import$UMAP(n_neighbors = as.integer(x = n_neighbors), 
                            n_components = as.integer(x = 2), metric = "correlation", 
