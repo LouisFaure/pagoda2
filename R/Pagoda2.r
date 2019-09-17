@@ -2013,7 +2013,8 @@ Pagoda2 <- setRefClass(
     		set.seed(seed = seed.use)
     		reticulate::py_set_seed(seed = seed.use)
   		}
-  		umap <- reticulate::umap_import$UMAP(n_neighbors = as.integer(x = n_neighbors), 
+      umap_import <- reticulate::import(module = "umap", delay_load = TRUE)
+  		umap <- umap_import$UMAP(n_neighbors = as.integer(x = n_neighbors), 
                            n_components = as.integer(x = 2), metric = "correlation", 
                            min_dist = min_dist)
   
