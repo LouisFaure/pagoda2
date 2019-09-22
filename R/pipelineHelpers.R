@@ -195,23 +195,27 @@ p2.generate.go <- function(r, organism = NULL) {
 #' @param r a pagoda2 object
 #' @return a go environment object
 #' @export p2.generate.dr.go
-p2.generate.dr.go <- function(r) {
+p2.generate.dr.go <- function(r, verbose=T) {
   # Generate GO environment
   if (!requireNamespace("org.Dr.eg.db", quietly = TRUE)) {
     stop("Package \"org.Dr.eg.db\" needed for this function to work. Please install it.", call. = FALSE)
   }
   
   # translate gene names to ids
+  if(verbose) message("Preparing GO environment ", appendLF=F)
   ids <- unlist(lapply(BiocGenerics::mget(colnames(r$counts), org.Dr.eg.db::org.Dr.egALIAS2EG,ifnotfound=NA),function(x) x[1]))
-  
+  if(verbose) cat(".")
+                       
   # reverse map
   rids <- names(ids); names(rids) <- ids;
   
   # list all the ids per GO category
   go.env <- AnnotationDbi::eapply(org.Dr.eg.db::org.Dr.egGO2ALLEGS,function(x) as.character(na.omit(rids[x])))
+  if(verbose) cat(".")
   go.env <- go.env[unlist(lapply(go.env,length))>5];
+  if(verbose) cat(".")
   go.env <- list2env(go.env);
-  
+  if(verbose) cat(" done\n")
   go.env
 }
 
@@ -220,23 +224,27 @@ p2.generate.dr.go <- function(r) {
 #' @param r a pagoda2 object
 #' @return a go environment object
 #' @export p2.generate.human.go
-p2.generate.human.go <- function(r) {
+p2.generate.human.go <- function(r, verbose=T) {
   # Generate GO environment
   if (!requireNamespace("org.Hs.eg.db", quietly = TRUE)) {
     stop("Package \"org.Hs.eg.db\" needed for this function to work. Please install it.", call. = FALSE)
   }
 
   # translate gene names to ids
+  if(verbose) message("Preparing GO environment ", appendLF=F)
   ids <- unlist(lapply(BiocGenerics::mget(colnames(r$counts),org.Hs.eg.db::org.Hs.egALIAS2EG,ifnotfound=NA),function(x) x[1]))
-
+  if(verbose) cat(".")
   # reverse map
   rids <- names(ids); names(rids) <- ids;
 
-  # list all the ids per GO category
-  go.env <- AnnotationDbi::eapply(org.Hs.eg.db::org.Hs.egGO2ALLEGS,function(x) as.character(na.omit(rids[x])))
-  go.env <- go.env[unlist(lapply(go.env,length))>5];
-  go.env <- list2env(go.env);
+  # list all the ids per GO category 
 
+  go.env <- AnnotationDbi::eapply(org.Hs.eg.db::org.Hs.egGO2ALLEGS,function(x) as.character(na.omit(rids[x])))
+  if(verbose) cat(".")
+  go.env <- go.env[unlist(lapply(go.env,length))>5];
+  if(verbose) cat(".")
+  go.env <- list2env(go.env);
+  if(verbose) cat(" done\n")
   go.env
 }
 
@@ -244,23 +252,26 @@ p2.generate.human.go <- function(r) {
 #' @param r a pagoda2 object
 #' @return a go environment object
 #' @export p2.generate.mouse.go
-p2.generate.mouse.go <- function(r) {
+p2.generate.mouse.go <- function(r, verbose=T) {
   # Generate GO environment
   if (!requireNamespace("org.Mm.eg.db", quietly = TRUE)) {
     stop("Package \"org.Mm.eg.db\" needed for this function to work. Please install it.", call. = FALSE)
   }
 
   # translate gene names to ids
+  if(verbose) message("Preparing GO environment ", appendLF=F)
   ids <- unlist(lapply(BiocGenerics::mget(colnames(r$counts), org.Mm.eg.db::org.Mm.egALIAS2EG,ifnotfound=NA),function(x) x[1]))
-
+  if(verbose) cat(".")
   # reverse map
   rids <- names(ids); names(rids) <- ids;
 
   # list all the ids per GO category
   go.env <- AnnotationDbi::eapply(org.Mm.eg.db::org.Mm.egGO2ALLEGS,function(x) as.character(na.omit(rids[x])))
+  if(verbose) cat(".")
   go.env <- go.env[unlist(lapply(go.env,length))>5];
+  if(verbose) cat(".")
   go.env <- list2env(go.env);
-
+  if(verbose) cat(" done\n")
   go.env
 }
 

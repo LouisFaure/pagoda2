@@ -1718,7 +1718,6 @@ Pagoda2 <- setRefClass(
       return(invisible(list(d=d,m=m,gpcs=gpcs)))
     },
 
-
     # test pathway overdispersion
     # this is a compressed version of the PAGODA1 approach
     # env - pathway to gene environment
@@ -1741,22 +1740,26 @@ Pagoda2 <- setRefClass(
 
       if(is.null(misc[['pwpca']]) || recalculate.pca) {
         if(verbose) {
-          message("determining valid pathways")
+          message("Determining valid pathways ",appendLF=F)
         }
 
         # determine valid pathways
         gsl <- ls(envir = setenv)
+        if(verbose) cat(".")
         gsl.ng <- unlist(mclapply(sn(gsl), function(go) sum(unique(get(go, envir = setenv)) %in% proper.gene.names),mc.cores=n.cores,mc.preschedule=T))
+        if(verbose) cat(".")
         gsl <- gsl[gsl.ng >= min.pathway.size & gsl.ng<= max.pathway.size]
+        if(verbose) cat(".")
         names(gsl) <- gsl
+        if(verbose) cat(" done\n")
 
         if(verbose) {
-          message("processing ", length(gsl), " valid pathways")
+          message("Processing ", length(gsl), " valid pathways")
         }
 
         cm <- Matrix::colMeans(x)
 
-        pwpca <- papply(gsl, function(sn) {
+pwpca.fun <- function(sn) {
           lab <- proper.gene.names %in% get(sn, envir = setenv)
           if(sum(lab)<1) { return(NULL) }
           pcs <- irlba(x[,lab], nv=nPcs, nu=0, center=cm[lab])
@@ -1784,19 +1787,25 @@ Pagoda2 <- setRefClass(
             rownames(pcs$rotation) <- colnames(x)[lab];
           } # don't bother otherwise - it's not significant
           return(list(xp=pcs,z=z,n=ngenes))
-        }, n.cores = n.cores,mc.preschedule=T)
-        if(save.pca) {
+        }
+                                  
+        if(verbose) {
+pwpca <- pbapply::pblapply(gsl, pwpca.fun, cl = n.cores, mc.preschedule=T) 
+          } else {
+pwpca <- papply(gsl, pwpca.fun, n.cores=n.cores, mc.preschedule=T)
+          }
+if(save.pca) {
           misc[['pwpca']] <<- pwpca;
         }
       } else {
         if(verbose) {
-          message("reusing previous overdispersion calculations")
+          message("Reusing previous OD calculations")
           pwpca <- misc[['pwpca']];
         }
       }
 
       if(verbose) {
-        message("scoring pathway od signifcance")
+        message("Scoring pathway OD signifcance")
       }
 
       # score overdispersion
@@ -1850,6 +1859,7 @@ Pagoda2 <- setRefClass(
       vdf$ub.stringent <- RMTstat::qWishartMax(score.alpha/nrow(vdf)/2, n.cells, vdf$n, var = basevar, lower.tail = FALSE)
 
       if(plot) {
+        if(verbose) message("Plotting...")
         par(mfrow = c(1, 1), mar = c(3.5, 3.5, 1.0, 1.0), mgp = c(2, 0.65, 0))
         un <- sort(unique(vdf$n))
         on <- order(vdf$n, decreasing = FALSE)
@@ -1870,7 +1880,7 @@ Pagoda2 <- setRefClass(
         vdf$valid <- vdf$z  >=  z.score
       }
 
-      if(!any(vdf$valid)) { stop("no significantly overdispersed pathways found at z.score threshold of ",z.score) };
+      if(!any(vdf$valid)) { stop("No significantly OD pathways found at z.score threshold of ",z.score) };
 
       # apply additional filtering based on >0.5 sd above the local random estimate
       vdf$valid <- vdf$valid & unlist(lapply(pwpca,function(x) !is.null(x$xp$scores)))
@@ -1882,7 +1892,7 @@ Pagoda2 <- setRefClass(
         return(df)
       }
       if(verbose) {
-        message("compiling pathway reduction")
+        message("Compiling pathway reduction")
       }
       # calculate pathway reduction matrix
 
@@ -1906,14 +1916,14 @@ Pagoda2 <- setRefClass(
 
       # collapse gene loading
       if(verbose) {
-        message("clustering aspects based on gene loading ... ",appendLF=FALSE)
+        message("Clustering aspects based on gene loading ... ",appendLF=FALSE)
       }
       tam2 <- pagoda.reduce.loading.redundancy(list(xv=xmv,xvw=matrix(1,ncol=ncol(xmv),nrow=nrow(xmv))),pwpca,NULL,plot=F,distance.threshold=loading.distance.threshold,n.cores=n.cores)
       if(verbose) {
         message(nrow(tam2$xv)," aspects remaining")
       }
       if(verbose) {
-        message("clustering aspects based on pattern similarity ... ",appendLF=FALSE)
+        message("Clustering aspects based on pattern similarity ... ",appendLF=FALSE)
       }
       tam3 <- pagoda.reduce.redundancy(tam2,distance.threshold=correlation.distance.threshold,top=top.aspects)
       if(verbose) {
@@ -1932,11 +1942,11 @@ Pagoda2 <- setRefClass(
 
     getEmbedding=function(type='counts', embeddingType='largeVis', name=NULL, dims=2, M=1, gamma=1/M, perplexity=50, sgd_batches=NULL, diffusion.steps=0, diffusion.power=0.5, distance='pearson', n.cores = .self$n.cores,seed.use=42,n_neighbors=30,min_dist=.3 ,... ) {
       
-      if(dims<1) stop("dimensions must be >=1")
+      if(dims<1) stop("Dimensions must be >=1")
       if(type=='counts') {
         x <- counts;
       } else {
-        if(!type %in% names(reductions)) { stop("reduction ",type,' not found')}
+        if(!type %in% names(reductions)) { stop("Reduction ",type,' not found')}
         x <- reductions[[type]]
       }
       if(is.null(name)) { name <- embeddingType }
@@ -1986,23 +1996,23 @@ Pagoda2 <- setRefClass(
         emb <- embeddings[[type]][[name]] <<- t(coords);
       } else if(embeddingType=='tSNE') {
         
-        if(nrow(x)>4e4) { warning('too many cells to pre-calcualte correlation distances, switching to L2'); distance <- 'L2'; }
+        if(nrow(x)>4e4) { warning('Too many cells to pre-calcualte correlation distances, switching to L2'); distance <- 'L2'; }
         
         if (distance=='L2') {
-          if(verbose) cat("running tSNE using",n.cores,"cores:\n")
+          if(verbose) cat("Running tSNE using",n.cores,"cores:\n")
           emb <- Rtsne::Rtsne(x, perplexity=perplexity, dims=dims, num_threads=n.cores, ... )$Y;
         } else {
-          if(verbose) cat('calculating distance ... ');
-          if(verbose) cat('pearson ...')
+          if(verbose) cat('Calculating distance ... ');
+          if(verbose) cat('Pearson ...')
           d <- 1-cor(t(x))
-          if(verbose) cat("running tSNE using",n.cores,"cores:\n")
+          if(verbose) cat("Running tSNE using",n.cores,"cores:\n")
           emb <- Rtsne::Rtsne(d,is_distance=TRUE, perplexity=perplexity, dims=dims, num_threads=n.cores, ... )$Y;
         }
         rownames(emb) <- rownames(x)
         embeddings[[type]][[name]] <<- emb;
       } else if(embeddingType=='FR') {
         g <- graphs[[type]];
-        if(is.null(g)){ stop(paste("generate KNN graph first (type=",type,")",sep=''))}
+        if(is.null(g)){ stop(paste("Generate KNN graph first (type=",type,")",sep=''))}
         emb <- layout.fruchterman.reingold(g, weights=E(g)$weight)
         rownames(emb) <- colnames(mat); colnames(emb) <- c("D1","D2")
         embeddings[[type]][[name]] <<- emb;
@@ -2023,7 +2033,7 @@ Pagoda2 <- setRefClass(
   		embeddings[[type]][[name]] <<- emb;
 
       } else {
-        stop('unknown embeddingType ',embeddingType,' specified');
+        stop('Unknown embeddingType ',embeddingType,' specified');
       }
 
       return(invisible(emb));
